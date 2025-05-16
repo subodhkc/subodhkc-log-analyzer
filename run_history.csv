@@ -1,1 +1,2 @@
+timestamp,user,filename,event,project_name,app_name,build_version,test_type,total_events,failures_detected,anomalies,used_ai_rca
 # Placeholder for run_history.csv
