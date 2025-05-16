@@ -1,5 +1,4 @@
-# Provide the final clean version of ingestion.py without any write or generation logic
-clean_ingestion_code = '''"""
+"""
 ingestion.py – Handles log ingestion for SKC Log Reader
 
 Supports single log files, folders, or ZIP uploads.
@@ -15,6 +14,7 @@ from pathlib import Path
 SUPPORTED_EXTENSIONS = [".log", ".txt", ".json", ".csv"]
 EXTRACT_DIR = Path("temp_extracted")
 
+
 def extract_zip(zip_path: str, extract_to: Path = EXTRACT_DIR) -> Path:
     """
     Extracts a ZIP file to a temp directory and returns the path.
@@ -24,11 +24,13 @@ def extract_zip(zip_path: str, extract_to: Path = EXTRACT_DIR) -> Path:
         zip_ref.extractall(extract_to)
     return extract_to
 
+
 def collect_log_files(directory: Path) -> List[Path]:
     """
     Recursively collects all supported log files in a directory.
     """
     return [p for p in directory.rglob("*") if p.suffix.lower() in SUPPORTED_EXTENSIONS and p.is_file()]
+
 
 def read_logs_from_files(file_paths: List[Path]) -> List[Tuple[str, List[str]]]:
     """
@@ -43,6 +45,7 @@ def read_logs_from_files(file_paths: List[Path]) -> List[Tuple[str, List[str]]]:
         except Exception as e:
             results.append((str(file), [f"⚠️ Error reading file: {e}"]))
     return results
+
 
 def ingest(input_path: str) -> List[Tuple[str, List[str]]]:
     """
@@ -61,11 +64,3 @@ def ingest(input_path: str) -> List[Tuple[str, List[str]]]:
         return [("Unknown Input", ["❌ Unsupported input format"])]
 
     return read_logs_from_files(files)
-'''
-
-# Save the cleaned ingestion.py
-modules_dir = Path("/mnt/data/skc_log_reader/modules")
-clean_ingestion_path = modules_dir / "ingestion.py"
-clean_ingestion_path.write_text(clean_ingestion_code)
-
-clean_ingestion_path.name
