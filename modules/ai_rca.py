@@ -1,7 +1,4 @@
-# Final clean version of ai_rca.py with proper OpenAI key handling and no write operations
-from pathlib import Path
-
-clean_ai_rca_code = '''"""
+"""
 ai_rca.py – GPT-based RCA generation module for SKC Log Reader
 
 Prepares prompts and fetches AI-generated root cause analysis.
@@ -41,9 +38,9 @@ Test Type: {test}
 Errors:
 """
     for e in errors[:50]:
-        prompt += f"- {e}\\n"
+        prompt += f"- {e}\n"
 
-    prompt += "\\nExplain what might be causing these errors and suggest fixes."
+    prompt += "\nExplain what might be causing these errors and suggest fixes."
     return prompt
 
 
@@ -67,11 +64,3 @@ def fetch_gpt_rca(prompt: str, model: str = "gpt-4") -> Optional[str]:
         return response["choices"][0]["message"]["content"]
     except Exception as e:
         return f"❌ GPT API call failed: {e}"
-'''
-
-# Save to modules/ai_rca.py
-modules_dir = Path("/mnt/data/skc_log_reader/modules")
-ai_rca_file = modules_dir / "ai_rca.py"
-ai_rca_file.write_text(clean_ai_rca_code)
-
-ai_rca_file.name
