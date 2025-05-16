@@ -1,1 +1,42 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+
+# Log Reader output and runtime files
+data/
+temp_extracted/
+*.zip
+*.log
+*.txt
+
+# Configs and local credentials
+config/auth_config.json
+*.key
+*.pem
+
+# Saved test plans (optional to keep local only)
+test_plans/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Streamlit auto-generated cache
+.streamlit/config.toml
+.streamlit/secrets.toml
 # Placeholder for .gitignore
