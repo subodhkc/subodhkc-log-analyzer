@@ -1,12 +1,9 @@
-# Create a Streamlit-safe version of test_plan.py with relative paths
-from pathlib import Path
-
-safe_test_plan_code = '''"""
+"""
 test_plan.py – Test Plan Validator for SKC Log Reader
 
 - Validates log events against test plan steps
 - Saves uploaded test plans to disk for reuse
-- Uses relative paths for Streamlit Cloud compatibility
+- Supports listing and loading saved plans
 """
 
 import os
@@ -95,11 +92,3 @@ def summarize_results(results: List[Dict]) -> Dict:
         "optional": optional,
         "status": "PASS" if failed == 0 else "FAIL"
     }
-'''
-
-# Save to correct module path
-modules_dir = Path("/mnt/data/skc_log_reader/modules")
-test_plan_file = modules_dir / "test_plan.py"
-test_plan_file.write_text(safe_test_plan_code)
-
-test_plan_file.name
