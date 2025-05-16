@@ -1,1 +1,5 @@
+[server]
+headless = true
+enableCORS = false
+port = 8501
 # Placeholder for config.toml
