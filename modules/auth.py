@@ -1,68 +1,42 @@
-from pathlib import Path
-import hashlib
-import json
+"""
+auth.py – Simple credential loader for SKC Log Reader
 
-# Define the content for auth.py
-auth_code = '''"""
-auth.py – Optional authentication module for SKC Log Reader
-
-This module provides basic local authentication using SHA-256 hashed passwords.
-Intended for optional protection in Streamlit-based UI.
+Handles optional login flow using a local JSON config file.
 """
 
-import hashlib
-import json
 import os
+import json
 from typing import Optional
+from pathlib import Path
+import hashlib
 
-DEFAULT_CRED_PATH = "config/auth_config.json"
+CONFIG_PATH = Path("config/auth_config.json")
 
 
-def is_auth_enabled(path: str = DEFAULT_CRED_PATH) -> bool:
+def is_auth_enabled() -> bool:
     """
-    Checks whether authentication is enabled by verifying if the credential file exists.
+    Check if authentication should be enforced.
     """
-    return os.path.isfile(path)
+    return CONFIG_PATH.exists()
 
 
-def load_credentials(path: str = DEFAULT_CRED_PATH) -> Optional[dict]:
+def load_credentials() -> Optional[dict]:
     """
-    Loads hashed credentials from the local JSON config file.
-    Expected format:
-    {
-        "username": "admin",
-        "password_hash": "..."
-    }
+    Loads credentials from the config file.
     """
+    if not CONFIG_PATH.exists():
+        return None
     try:
-        with open(path, "r") as f:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except Exception as e:
+        print(f"Failed to load credentials: {e}")
         return None
 
 
-def verify_password(input_pwd: str, stored_hash: str) -> bool:
+def verify_password(input_password: str, stored_hash: str) -> bool:
     """
-    Hashes the input password and compares with stored hash
+    Compare SHA-256 hash of input password with stored hash.
     """
-    input_hash = hashlib.sha256(input_pwd.encode()).hexdigest()
-    return input_hash == stored_hash
-
-
-def hash_password(plain_pwd: str) -> str:
-    """
-    Utility to hash a plain text password (for setup or testing)
-    """
-    return hashlib.sha256(plain_pwd.encode()).hexdigest()
-'''
-
-# Write the file to the correct directory
-modules_dir = Path("/mnt/data/skc_log_reader/modules")
-modules_dir.mkdir(parents=True, exist_ok=True)
-auth_file = modules_dir / "auth.py"
-
-with open(auth_file, "w") as f:
-    f.write(auth_code)
-
-auth_file.name
-# Placeholder for auth.py
+    hashed_input = hashlib.sha256(input_password.encode()).hexdigest()
+    return hashed_input == stored_hash
