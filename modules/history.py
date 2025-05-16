@@ -1,55 +1,51 @@
+# Final cleaned version of history.py with relative path and safe append-only CSV writing
 from pathlib import Path
 
-# Define the content for history.py
-history_code = '''"""
-history.py – User action and log upload history tracking for SKC Log Reader
+clean_history_code = '''"""
+history.py – Run history logger for SKC Log Reader
 
-This module logs analysis history, file uploads, and AI-RCA usage
-to a local JSONL file. Useful for auditing or resuming sessions.
+Appends session metadata to a local CSV for auditing and tracking.
 """
 
-import os
-import json
+import csv
+from pathlib import Path
+from typing import Dict
 from datetime import datetime
-from typing import Optional, Dict
 
-HISTORY_LOG_PATH = "data/history_log.jsonl"
+HISTORY_FILE = Path("run_history.csv")
 
-
-def log_event(event_type: str, metadata: Optional[Dict] = None):
+def log_run(metadata: Dict) -> None:
     """
-    Records an event (e.g., log uploaded, RCA run, summary exported)
-    to the local history log.
+    Append a row of metadata to the history CSV file.
     """
-    record = {
-        "timestamp": datetime.now().isoformat(),
-        "event": event_type,
-        "meta": metadata or {}
-    }
-    os.makedirs(os.path.dirname(HISTORY_LOG_PATH), exist_ok=True)
-    with open(HISTORY_LOG_PATH, "a") as f:
-        f.write(json.dumps(record) + "\\n")
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
 
+    headers = [
+        "timestamp", "user", "filename", "event", "project_name",
+        "app_name", "build_version", "test_type",
+        "total_events", "failures_detected", "anomalies", "used_ai_rca"
+    ]
 
-def read_history(limit: Optional[int] = 100) -> list:
-    """
-    Reads recent history from the history log.
-    Returns the last `limit` entries (default: 100).
-    """
-    if not os.path.exists(HISTORY_LOG_PATH):
-        return []
-    with open(HISTORY_LOG_PATH, "r") as f:
-        lines = f.readlines()[-limit:]
-    return [json.loads(line.strip()) for line in lines]
+    # Add timestamp if not present
+    metadata["timestamp"] = metadata.get("timestamp", datetime.utcnow().isoformat())
+
+    # Ensure all required fields are present
+    row = [metadata.get(k, "") for k in headers]
+
+    write_header = not HISTORY_FILE.exists()
+    try:
+        with open(HISTORY_FILE, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            if write_header:
+                writer.writerow(headers)
+            writer.writerow(row)
+    except Exception as e:
+        print(f"⚠️ Failed to write run history: {e}")
 '''
 
-# Write the file to the correct directory
+# Save to modules/history.py
 modules_dir = Path("/mnt/data/skc_log_reader/modules")
-modules_dir.mkdir(parents=True, exist_ok=True)
 history_file = modules_dir / "history.py"
-
-with open(history_file, "w") as f:
-    f.write(history_code)
+history_file.write_text(clean_history_code)
 
 history_file.name
-# Placeholder for history.py
