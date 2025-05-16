@@ -1,42 +1,40 @@
+# Create a Streamlit-safe version of test_plan.py with relative paths
 from pathlib import Path
 
-# Update test_plan.py with test plan saving and retrieval support
-enhanced_test_plan_code = '''"""
+safe_test_plan_code = '''"""
 test_plan.py – Test Plan Validator for SKC Log Reader
 
 - Validates log events against test plan steps
 - Saves uploaded test plans to disk for reuse
-- Supports listing and loading saved plans
+- Uses relative paths for Streamlit Cloud compatibility
 """
 
 import os
 import json
 import re
+from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from modules.analysis import LogEvent
 
-TEST_PLAN_DIR = "test_plans"
-
+TEST_PLAN_DIR = Path("test_plans")
 
 def save_test_plan(plan_json: Dict, plan_name: str) -> str:
     """
     Saves a test plan to the local test_plans/ directory.
     """
-    os.makedirs(TEST_PLAN_DIR, exist_ok=True)
-    plan_path = os.path.join(TEST_PLAN_DIR, f"{plan_name}.json")
+    TEST_PLAN_DIR.mkdir(parents=True, exist_ok=True)
+    plan_path = TEST_PLAN_DIR / f"{plan_name}.json"
     with open(plan_path, "w", encoding="utf-8") as f:
         json.dump(plan_json, f, indent=2)
-    return plan_path
-
+    return str(plan_path)
 
 def list_saved_plans() -> List[str]:
     """
     Lists all saved test plans in the test_plans/ folder.
     """
-    if not os.path.exists(TEST_PLAN_DIR):
+    if not TEST_PLAN_DIR.exists():
         return []
-    return [f for f in os.listdir(TEST_PLAN_DIR) if f.endswith(".json")]
-
+    return [f.name for f in TEST_PLAN_DIR.glob("*.json")]
 
 def load_test_plan(path: str) -> Optional[Dict]:
     """
@@ -48,7 +46,6 @@ def load_test_plan(path: str) -> Optional[Dict]:
     except Exception as e:
         print(f"Failed to load test plan: {e}")
         return None
-
 
 def match_step_to_logs(step: Dict, events: List[LogEvent]) -> Tuple[bool, List[LogEvent]]:
     """
@@ -63,7 +60,6 @@ def match_step_to_logs(step: Dict, events: List[LogEvent]) -> Tuple[bool, List[L
             matches.append(event)
 
     return (len(matches) > 0, matches)
-
 
 def validate_test_plan(plan: Dict, events: List[LogEvent]) -> List[Dict]:
     """
@@ -83,7 +79,6 @@ def validate_test_plan(plan: Dict, events: List[LogEvent]) -> List[Dict]:
         results.append(result)
     return results
 
-
 def summarize_results(results: List[Dict]) -> Dict:
     """
     Creates a summary dictionary from validation results.
@@ -102,12 +97,9 @@ def summarize_results(results: List[Dict]) -> Dict:
     }
 '''
 
-# Write the enhanced test_plan.py
+# Save to correct module path
 modules_dir = Path("/mnt/data/skc_log_reader/modules")
 test_plan_file = modules_dir / "test_plan.py"
-
-with open(test_plan_file, "w") as f:
-    f.write(enhanced_test_plan_code)
+test_plan_file.write_text(safe_test_plan_code)
 
 test_plan_file.name
-# Placeholder for test_plan.py
