@@ -1,7 +1,7 @@
+# Create a Streamlit-safe version of report.py using relative paths
 from pathlib import Path
 
-# Define the content for report.py
-report_code = '''"""
+safe_report_code = '''"""
 report.py – Report generation module for SKC Log Reader
 
 Generates structured, readable reports in text or PDF format
@@ -10,8 +10,9 @@ and recommendation engine output.
 """
 
 import os
+from pathlib import Path
 from fpdf import FPDF
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class LogReportPDF(FPDF):
@@ -28,33 +29,53 @@ class LogReportPDF(FPDF):
         self.cell(0, 10, f"Page {self.page_no()}", align="C")
 
 
-def generate_text_report(summary: Dict, recommendations: List[str], output_path: str = "data/report.txt"):
+def generate_text_report(summary: Dict, recommendations: List[str], test_results: Optional[List[Dict]] = None, metadata: Optional[Dict] = None, output_path: Path = Path("data/report.txt")):
     """
     Generate a plain text report with summary and recommendations.
     """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("==== SKC LOG RCA SUMMARY ====\n\n")
+        if metadata:
+            f.write(f"Project: {metadata.get('project_name', 'N/A')}\n")
+            f.write(f"App: {metadata.get('app_name', 'N/A')} | Build: {metadata.get('build_version', 'N/A')} | Test: {metadata.get('test_type', 'N/A')}\n\n")
         f.write(f"Total Events: {summary.get('total_events', 0)}\n\n")
+
         f.write("== Categories ==\n")
         for category, count in summary.get("categories", {}).items():
-            f.write(f" - {category}: {count}\\n")
-        f.write("\\n== Anomalies ==\\n")
+            f.write(f" - {category}: {count}\n")
+
+        f.write("\n== Anomalies ==\n")
         for anomaly in summary.get("anomalies", []):
-            f.write(f" - {anomaly}\\n")
-        f.write("\\n== Recommendations ==\\n")
+            f.write(f" - {anomaly}\n")
+
+        f.write("\n== Recommendations ==\n")
         for line in recommendations:
-            f.write(f"{line}\\n")
+            f.write(f" - {line}\n")
+
+        if test_results:
+            f.write("\n== Test Plan Results ==\n")
+            for step in test_results:
+                f.write(f"Step {step['step_id']} - {step['description']} - Status: {step['status']}\n")
 
 
-def generate_pdf_report(summary: Dict, recommendations: List[str], output_path: str = "data/report.pdf"):
+def generate_pdf_report(summary: Dict, recommendations: List[str], test_results: Optional[List[Dict]] = None, metadata: Optional[Dict] = None, output_path: Path = Path("data/report.pdf")):
     """
     Generate a simple structured PDF report using fpdf
     """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     pdf = LogReportPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
+
+    if metadata:
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Project Information", ln=True)
+        pdf.set_font("Arial", "", 11)
+        pdf.cell(0, 8, f"Project: {metadata.get('project_name', 'N/A')}", ln=True)
+        pdf.cell(0, 8, f"App: {metadata.get('app_name', 'N/A')}", ln=True)
+        pdf.cell(0, 8, f"Build: {metadata.get('build_version', 'N/A')} | Test Type: {metadata.get('test_type', 'N/A')}", ln=True)
+        pdf.ln(5)
 
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Summary", ln=True)
@@ -79,16 +100,19 @@ def generate_pdf_report(summary: Dict, recommendations: List[str], output_path: 
     for line in recommendations:
         pdf.multi_cell(0, 8, f"{line}")
 
-    pdf.output(output_path)
+    if test_results:
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Test Plan Results", ln=True)
+        pdf.set_font("Arial", "", 11)
+        for step in test_results:
+            pdf.multi_cell(0, 8, f"Step {step['step_id']} - {step['description']} - Status: {step['status']}")
+
+    pdf.output(str(output_path))
 '''
 
-# Write the file to the correct directory
+# Save the safe version to correct location
 modules_dir = Path("/mnt/data/skc_log_reader/modules")
-modules_dir.mkdir(parents=True, exist_ok=True)
 report_file = modules_dir / "report.py"
-
-with open(report_file, "w") as f:
-    f.write(report_code)
+report_file.write_text(safe_report_code)
 
 report_file.name
-# Placeholder for report.py
