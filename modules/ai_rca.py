@@ -1,67 +1,77 @@
-"""
-AI RCA Module for SKC Log Reader
-Performs redacted log analysis using OpenAI's GPT API
-Only invoked after pre-analysis is completed and confirmed
+# Final clean version of ai_rca.py with proper OpenAI key handling and no write operations
+from pathlib import Path
+
+clean_ai_rca_code = '''"""
+ai_rca.py – GPT-based RCA generation module for SKC Log Reader
+
+Prepares prompts and fetches AI-generated root cause analysis.
 """
 
 import os
 import openai
-from typing import List, Optional
+from typing import List, Dict, Optional
 
-# Safe import of API key
+# Get API key from environment or Streamlit secrets
+openai.api_key = os.getenv("OPENAI_API_KEY")
 try:
-    openai.api_key = os.getenv("OPENAI_API_KEY") or \
-                     (st.secrets["general"]["OPENAI_API_KEY"] if "general" in st.secrets else None)
+    import streamlit as st
+    if not openai.api_key and st.secrets.get("general"):
+        openai.api_key = st.secrets["general"].get("OPENAI_API_KEY")
 except Exception:
-    openai.api_key = None
+    pass
 
 
-def prepare_prompt(errors: List[str], metadata: dict) -> str:
+def prepare_prompt(errors: List[str], metadata: Dict) -> str:
     """
-    Prepares a clean prompt for GPT-4 based on error list and metadata
+    Builds a GPT-compatible prompt from log errors and metadata.
     """
     app = metadata.get("app_name", "Unknown App")
     build = metadata.get("build_version", "Unknown Build")
     test = metadata.get("test_type", "Unknown Test Type")
-    plan_coverage = metadata.get("plan_coverage", "N/A")
+    project = metadata.get("project_name", "Untitled Project")
 
-    error_excerpt = "\n".join(errors[:50]) if errors else "No errors extracted."
+    prompt = f"""You are an expert QA engineer.
+Given the following log errors, provide a root cause analysis (RCA).
 
-    prompt = f"""You are an RCA (Root Cause Analysis) assistant for software logs.
+Project: {project}
+App: {app}
+Build: {build}
+Test Type: {test}
 
-The user ran a test for **{app}** using **{test}** on build **{build}**.
-
-The test plan coverage was approximately {plan_coverage}%.
-
-Below is a list of redacted error messages extracted from the logs:
-
-{error_excerpt}
-
-Please provide a short, structured root cause summary, and recommend next steps for the TPM or developer.
-
-Explain concisely but with technical insight. Highlight failure phases if detectable.
+Errors:
 """
+    for e in errors[:50]:
+        prompt += f"- {e}\\n"
+
+    prompt += "\\nExplain what might be causing these errors and suggest fixes."
     return prompt
 
 
-def call_gpt_for_rca(prompt: str) -> Optional[str]:
+def fetch_gpt_rca(prompt: str, model: str = "gpt-4") -> Optional[str]:
     """
-    Sends the redacted prompt to GPT-4 API and returns the RCA response.
+    Sends the prompt to GPT and returns the result.
     """
     if not openai.api_key:
-        return "❌ No OpenAI API key detected. Please configure your API key in .streamlit/secrets.toml or set as an environment variable."
+        return "❌ Missing OpenAI API key. Please set it in your environment or secrets."
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant specialized in software log analysis and RCA."},
+                {"role": "system", "content": "You are an expert QA and software tester."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=800,
-            temperature=0.4
+            temperature=0.4,
+            max_tokens=800
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response["choices"][0]["message"]["content"]
     except Exception as e:
-        return f"❌ GPT API error: {e}"
-# Placeholder for ai_rca.py
+        return f"❌ GPT API call failed: {e}"
+'''
+
+# Save to modules/ai_rca.py
+modules_dir = Path("/mnt/data/skc_log_reader/modules")
+ai_rca_file = modules_dir / "ai_rca.py"
+ai_rca_file.write_text(clean_ai_rca_code)
+
+ai_rca_file.name
