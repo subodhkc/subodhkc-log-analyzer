@@ -1,8 +1,14 @@
 """
-skc_log_reader.py – Final full version for SKC Log Reader
+skc_log_reader.py – Final merged version for SKC Log Analyzer
 
-Includes features from Step 1 through Step 7:
-- Login, upload, preview, validation, analysis, recommendation, RCA, and reporting
+Includes:
+✔️ Login system
+✔️ Log upload + ingestion + preview
+✔️ Redaction with custom words
+✔️ Auto analysis + summary
+✔️ Test plan upload + selection + validation
+✔️ Rule-based + AI RCA
+✔️ Report generation + download
 """
 
 import streamlit as st
@@ -11,18 +17,17 @@ from modules import (
     recommendations, report, ai_rca, auth, history
 )
 import json
-from io import StringIO
 import os
 
-st.set_page_config(page_title="SKC Log Reader", layout="wide")
+st.set_page_config(page_title="SKC Log Analyzer", layout="wide")
 
-# Auth Setup
+# --- AUTH ---
 AUTH_ENABLED = auth.is_auth_enabled()
 if AUTH_ENABLED:
-    st.sidebar.title("🔐 Session")
+    st.sidebar.title("🔐 Session Login")
     if not st.session_state.get("auth_ok"):
         with st.sidebar.form("login"):
-            st.write("Login to access the app:")
+            st.write("Login to access the tool:")
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
             submitted = st.form_submit_button("Login")
@@ -35,15 +40,12 @@ if AUTH_ENABLED:
                     st.sidebar.error("❌ Invalid credentials")
         st.stop()
     else:
-        st.sidebar.success("✅ Logged in as " + creds["username"])
+        st.sidebar.success("Logged in as: " + creds["username"])
         if st.sidebar.button("Logout"):
             st.session_state.clear()
             st.experimental_rerun()
 
-# Title
-st.title("📊 SKC Log Reader – Subodh Log Analyzer")
-
-# State setup
+# --- STATE INIT ---
 for key in [
     "log_lines", "redacted_lines", "events", "summary", "test_plan_results",
     "recommendations", "plan_refresh", "ai_rca_prompt", "ingested_files",
@@ -52,13 +54,13 @@ for key in [
     if key not in st.session_state:
         st.session_state[key] = None
 
-# Tabs
+# --- TABS ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Upload Logs", "Test Plan", "Analysis", "Recommendations", "Report"])
 
-# Upload Logs
+# --- TAB 1: UPLOAD ---
 with tab1:
     st.header("📁 Upload and Redact Logs")
-    uploaded_file = st.file_uploader("Upload a log file or ZIP", type=["log", "txt", "json", "zip"])
+    uploaded_file = st.file_uploader("Upload .log/.txt/.zip file", type=["zip", "txt", "log", "json"])
     custom_words = st.text_input("Custom redaction keywords (comma-separated)").split(",")
 
     col1, col2 = st.columns(2)
@@ -67,13 +69,18 @@ with tab1:
             temp_path = "temp.zip" if uploaded_file.name.endswith(".zip") else "temp.log"
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.read())
-            files = ingestion.ingest(temp_path)
-            lines = [line for _, content in files for line in content]
-            st.session_state["log_lines"] = lines
-            st.session_state["ingested_files"] = files
-            st.session_state["redacted_lines"] = redaction.redact_logs(lines, custom_words)
-            history.log_event("log_uploaded", {"filename": uploaded_file.name})
-            st.success("Logs redacted and loaded.")
+
+            with st.spinner("🔄 Ingesting and redacting logs..."):
+                files = ingestion.ingest(temp_path)
+                lines = [line for _, content in files for line in content]
+                redacted = redaction.redact_logs(lines, custom_words)
+                st.session_state["log_lines"] = lines
+                st.session_state["redacted_lines"] = redacted
+                st.session_state["ingested_files"] = files
+                history.log_event("log_uploaded", {"filename": uploaded_file.name})
+
+            st.success("✅ Logs redacted and loaded. Proceed to Analysis.")
+
     with col2:
         if st.button("Clear Logs"):
             for key in ["log_lines", "redacted_lines", "events", "summary", "test_plan_results", "recommendations", "ai_rca_prompt", "ingested_files"]:
@@ -81,55 +88,54 @@ with tab1:
             st.success("Session reset. You may re-upload logs.")
 
     if st.session_state["ingested_files"]:
-        st.subheader("📂 Ingested File Overview")
-        for fname, content in st.session_state["ingested_files"]:
-            with st.expander(f"View content: {fname}"):
-                st.code("".join(content[:200]), language="text")
+        st.subheader("📂 Ingested Files Preview")
+        for fname, content in st.session_state["ingested_files"][:3]:
+            with st.expander(f"{fname}"):
+                st.code("".join(content[:50]), language="text")
 
     if st.session_state["redacted_lines"]:
-        st.subheader("🔍 Redacted Logs Preview (Top 10)")
+        st.subheader("🔍 Redaction Preview")
         preview = redaction.preview_redactions(st.session_state["log_lines"], custom_words)
-        for i in range(len(preview["original"])):
-            st.markdown(f"**Original:** `{preview['original'][i].strip()}`")
-            st.markdown(f"**Redacted:** `{preview['redacted'][i].strip()}`")
-            st.markdown("---")
-        total_redactions = sum(1 for o, r in zip(st.session_state["log_lines"], st.session_state["redacted_lines"]) if o != r)
-        st.info(f"Total redacted lines: {total_redactions}")
+        for o, r in zip(preview["original"], preview["redacted"]):
+            st.markdown(f"• **Original:** `{o.strip()}`")
+            st.markdown(f"• **Redacted:** `{r.strip()}`")
+        st.info(f"Total redacted lines: {sum(1 for o, r in zip(st.session_state['log_lines'], st.session_state['redacted_lines']) if o != r)}")
 
-# Test Plan
+# --- TAB 2: TEST PLAN ---
 with tab2:
-    st.header("📋 Test Plan Validation")
+    st.header("🧪 Test Plan Validation")
     if st.session_state["plan_refresh"]:
         st.experimental_rerun()
+
     plan_list = test_plan.list_saved_plans()
-    selected = st.selectbox("Choose existing plan", plan_list) if plan_list else None
+    selected = st.selectbox("Select existing plan", ["--"] + plan_list) if plan_list else "--"
     uploaded_plan = st.file_uploader("Upload new test plan (JSON)", type=["json"], key="plan")
 
     if uploaded_plan:
         try:
             plan_json = json.load(uploaded_plan)
-            required_keys = {"steps"}
-            if not required_keys.issubset(plan_json.keys()):
+            if "steps" not in plan_json:
                 st.error("Invalid test plan format. 'steps' key missing.")
             else:
-                name = st.text_input("Save this plan as:", value="new_plan")
+                name = st.text_input("Save this plan as", value="custom_plan")
                 if st.button("Save Plan"):
                     test_plan.save_test_plan(plan_json, name)
                     st.session_state["plan_refresh"] = True
                     st.rerun()
         except Exception as e:
-            st.error(f"Error loading plan: {e}")
+            st.error(f"Error reading plan: {e}")
 
-    plan_obj = test_plan.load_test_plan(f"test_plans/{selected}") if selected else None
-    if plan_obj and st.session_state["log_lines"]:
+    if selected != "--" and st.session_state["redacted_lines"]:
+        plan_obj = test_plan.load_test_plan(f"test_plans/{selected}")
         parsed = analysis.LogAnalyzer().parse_logs(st.session_state["redacted_lines"])
         results = test_plan.validate_test_plan(plan_obj, parsed)
         st.session_state["test_plan_results"] = results
+        st.subheader("✅ Test Plan Results")
         st.json(results)
 
-# Analysis
+# --- TAB 3: ANALYSIS ---
 with tab3:
-    st.header("📈 Analyze Logs")
+    st.header("📊 Log Analysis Summary")
     if st.session_state["redacted_lines"]:
         analyzer = analysis.LogAnalyzer()
         events = analyzer.parse_logs(st.session_state["redacted_lines"])
@@ -137,54 +143,48 @@ with tab3:
         st.session_state["events"] = events
         st.session_state["summary"] = summary
 
-        st.subheader("Summary Overview")
         st.metric("Total Events", summary.get("total_events", 0))
-        st.write("### Categories")
-        st.json(summary.get("categories"))
-        st.write("### Anomalies")
-        st.write(summary.get("anomalies"))
-        st.write("### Clusters")
-        st.json(summary.get("clusters"))
+        st.subheader("Categories")
+        st.json(summary.get("categories", {}))
+        st.subheader("Anomalies")
+        for a in summary.get("anomalies", []):
+            st.markdown(f"- {a}")
+        st.subheader("Clusters")
+        st.json(summary.get("clusters", []))
+    else:
+        st.warning("Please upload and ingest logs first.")
 
-# Recommendations + AI RCA
+# --- TAB 4: RECOMMENDATIONS ---
 with tab4:
-    st.header("💡 Recommendations and RCA")
+    st.header("🛠 Recommendations and RCA")
     if st.session_state["summary"]:
-        recs = recommendations.get_recommendations_from_summary(st.session_state["summary"])
+        raw = st.session_state["log_lines"]
+        recs = recommendations.generate_recommendations(st.session_state["summary"], raw)
         st.session_state["recommendations"] = recs
-        st.subheader("🛠 Rule-Based Recommendations")
+
+        st.subheader("Rule-Based Recommendations")
         for r in recs:
             st.markdown(f"- {r}")
 
         st.divider()
-        st.subheader("🤖 GPT-Powered RCA (Optional)")
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if not openai_key:
-            st.warning("OpenAI API key not set. Skipping AI RCA.")
-        else:
-            estimated_tokens = len(st.session_state["events"]) * 10
-            st.caption(f"Estimated tokens: {estimated_tokens} | May incur cost.")
-            if st.button("Run AI RCA Now"):
-                metadata = {
-                    "app_name": st.session_state.get("app_name", "N/A"),
-                    "build_version": st.session_state.get("build_version", "N/A"),
-                    "test_type": st.session_state.get("test_type", "N/A")
-                }
-                errors = [e.raw for e in st.session_state["events"] if e.severity >= 4]
-                try:
-                    rca = ai_rca.prepare_prompt(errors, metadata)
-                    st.session_state["ai_rca_prompt"] = rca
-                    st.success("AI RCA prompt generated.")
-                except Exception as e:
-                    st.error(f"Failed to generate RCA: {e}")
+        st.subheader("GPT-Powered RCA (Optional)")
+        if st.text_input("OpenAI API Key", type="password"):
+            st.caption("Only needed if using GPT")
+        if st.button("Generate RCA"):
+            errors = [e.raw for e in st.session_state["events"] if e.severity >= 4]
+            metadata = {
+                "app_name": st.text_input("App Name", "DemoApp"),
+                "build_version": st.text_input("Build Version", "1.0"),
+                "test_type": st.text_input("Test Type", "SoftPaq"),
+                "project_name": st.text_input("Project Name", "SKC Demo")
+            }
+            prompt = ai_rca.prepare_prompt(errors, metadata)
+            result = ai_rca.fetch_gpt_rca(prompt)
+            st.text_area("GPT RCA Output", result, height=250)
 
-            if st.session_state["ai_rca_prompt"]:
-                st.text_area("Generated RCA Prompt", st.session_state["ai_rca_prompt"], height=250)
-
-# Report tab
+# --- TAB 5: REPORT ---
 with tab5:
-    st.header("📝 Generate Report")
-
+    st.header("📄 Generate Report")
     st.text_input("Project Name", key="project_name")
     st.text_input("App Name", key="app_name")
     st.text_input("Build Version", key="build_version")
@@ -216,8 +216,7 @@ with tab5:
 
     if os.path.exists("data/report.txt"):
         with open("data/report.txt", "r") as f:
-            st.download_button("Download Text Report", f.read(), file_name="report.txt")
+            st.download_button("⬇️ Download Text Report", f.read(), file_name="report.txt")
     if os.path.exists("data/report.pdf"):
         with open("data/report.pdf", "rb") as f:
-            st.download_button("Download PDF Report", f, file_name="report.pdf")
-# Placeholder for skc_log_reader.py
+            st.download_button("⬇️ Download PDF Report", f, file_name="report.pdf")
