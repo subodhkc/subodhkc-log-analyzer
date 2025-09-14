@@ -33,7 +33,7 @@ SKC Log Reader is a modular, local-first Python app designed to analyze and summ
 
 subodhkc-log-analyzer/
 ├── modules/
-│   ├── analysis.py
+├── analysis.py
 │   ├── ai_rca.py
 │   ├── auth.py
 │   ├── history.py
