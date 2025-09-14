@@ -29,29 +29,6 @@ SKC Log Reader is a modular, local-first Python app designed to analyze and summ
 | report.py          | Generates structured TXT and PDF reports                      |
 | test_plan.py       | Validates logs against test plans (JSON, saved locally)       |
 
-## Folder Structure
-
-subodhkc-log-analyzer/
-├── modules/
-├── analysis.py
-│   ├── ai_rca.py
-│   ├── auth.py
-│   ├── history.py
-│   ├── ingestion.py
-│   ├── redaction.py
-│   ├── recommendations.py
-│   ├── report.py
-│   └── test_plan.py
-├── config/
-│   └── auth_config.json (optional)
-├── test_plans/
-│   └── *.json (saved test plans)
-├── data/
-│   ├── report.txt / report.pdf / history_log.jsonl
-├── LICENSE
-├── .gitignore
-├── README.md
-└── skc_log_reader.py (Streamlit app)
 
 ## Installation
 
@@ -115,10 +92,10 @@ Set your OpenAI API key in .streamlit/secrets.toml:
 This guide will help you set up and run the SKC Log Analyzer on your local Windows machine.
 
 --------------------------------
-✅ STEP 1: INSTALL PREREQUISITES
+ STEP 1: INSTALL PREREQUISITES
 --------------------------------
 
-📥 1.1 Install Git in your Pc(if not already installed)
+ 1.1 Install Git in your Pc(if not already installed)
 --------------------------------------------
 Git is required to clone the project from GitHub.
 
@@ -129,7 +106,7 @@ After installing, open CMD and type:
     git --version
 You should see a version number like `git version 2.43.0`
 
-📥 1.2 Install Python 3.8 or newer in your Pc (if not installed)
+1.2 Install Python 3.8 or newer in your Pc (if not installed)
 ------------------------------------------------------
 ➡ Download link:
 https://www.python.org/downloads/windows/
@@ -142,7 +119,7 @@ After installing, open CMD and type:
 You should see something like: `Python 3.10.9`
 
 -------------------------------------------------
-✅ STEP 2: CLONE THE REPO FROM GITHUB TO YOUR PC
+STEP 2: CLONE THE REPO FROM GITHUB TO YOUR PC
 -------------------------------------------------
 
 1. Open Command Prompt (CMD) in your pc
@@ -159,7 +136,7 @@ You should see something like: `Python 3.10.9`
     cd subodhkc-log-analyzer
 
 ------------------------------------------------
-✅ STEP 3: SET UP A PYTHON VIRTUAL ENVIRONMENT
+STEP 3: SET UP A PYTHON VIRTUAL ENVIRONMENT
 ------------------------------------------------
 
 This keeps your dependencies clean and isolated.
@@ -172,7 +149,7 @@ Run these commands in the project folder:
 After this, your prompt should change to show `(venv)`
 
 ---------------------------------------
-✅ STEP 4: INSTALL REQUIRED DEPENDENCIES
+STEP 4: INSTALL REQUIRED DEPENDENCIES
 ---------------------------------------
 
 OPTION A: If there is a file named `requirements.txt`:
@@ -194,10 +171,10 @@ OPTION B: Manually install each package:
     pip install transformers
     pip install torch
 
-💡 NOTE: `difflib` is already included with Python — no need to install.
+ NOTE: `difflib` is already included with Python — no need to install.
 
 -------------------------------
-✅ STEP 5: RUN THE APPLICATION
+ STEP 5: RUN THE APPLICATION
 -------------------------------
 
 1. Make sure your virtual environment is activated:
@@ -216,7 +193,7 @@ This will:
 If that doesn't happen automatically, open your browser and paste the URL above.
 
 -------------------------------
-✅ WHAT TO EXPECT
+ WHAT TO EXPECT
 -------------------------------
 
 Once the app is running:
@@ -225,7 +202,7 @@ Once the app is running:
 - Generated PDF reports (if enabled) will be downloadable via buttons in the app.
 
 -------------------------------
-✅ TROUBLESHOOTING TIPS
+ TROUBLESHOOTING TIPS
 -------------------------------
 
 - If a package fails to install, make sure pip is updated:
@@ -241,7 +218,7 @@ Once the app is running:
     Press `CTRL + C` in the terminal
 
 ===============================
-🎉 SETUP COMPLETE!
+SETUP COMPLETE!
 ===============================
 You are now ready to use the SKC Log Analyzer on your machine.
 
@@ -253,7 +230,7 @@ Apache License 2.0
 
 ## Acknowledgements
 
-This tool was built by Subodh KC to simplify log analysis and empower TPMs and test engineers with modern tools for debugging and decision-making.
+This tool was built by Subodh KC to simplify log analysis and empower Enterprise with modern Standalone compliance tool for debugging and decision-making.
 '''
 
 # Save plain README text file for download
